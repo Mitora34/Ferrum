@@ -8,7 +8,6 @@ class Parser{
         Lexer lexer;
         Token current_token;
         map<string, long double> memory;
-        map<string, bool> mem;
     public:
         Parser(Lexer l) : lexer(l){
             current_token = lexer.next_token();
@@ -36,6 +35,8 @@ class Parser{
                 case DECREASE: return "DECREASE";
                 case INCREASE: return "INCREASE";
                 case NOT: return "NOT";
+                case OR: return "OR";
+                case AND: return "AND";
                 case SEMICOLON: return "SEMICOLON";
                 case END_OF_FILE: return "END_OF_FILE";
                 case IF: return "IF";
@@ -62,20 +63,31 @@ class Parser{
         }
 
         long double parse_factor(){
-            if (current_token.type == NUMBER){
+            if (current_token.type == MINUS){
+                eat(MINUS);
+                return -parse_factor();
+            }
+            else if (current_token.type == NUMBER){
                 long double value = stold(current_token.value);
                 eat(NUMBER);
                 return value;
             }
             else if (current_token.type == IDENTIFIER){
+                string name = current_token.value;
                 eat(IDENTIFIER);
-                if(memory.count(current_token.value)){
-                    return memory[current_token.value];
+                if(memory.count(name)){
+                    return memory[name];
                 }
                 else{
-                    cout<<"[RuntimeError]: Variable "<<current_token.value<<" is not initialized";
+                    cout<<"[RuntimeError]: Variable "<<name<<" is not initialized";
                     exit(1);
                 }
+            }
+            else if (current_token.type == LPAREN){
+                eat(LPAREN);
+                long double value = parse_expression();
+                eat(RPAREN);
+                return value;
             }
             else{
                 cout<<"[UnexpectedTokenError]: Unexpected "<<GetTokenName(current_token.type);
