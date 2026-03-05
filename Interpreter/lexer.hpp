@@ -5,7 +5,7 @@ using namespace std;
 
 enum TokenTypes{
     IDENTIFIER, NUMBER, ASSIGN, PLUS, MINUS, MUL, DIV, SEMICOLON, END_OF_FILE,
-    GREATER, LESS, GR_EQUAL, LS_EQUAL, IS_EQUAL_TO, NOT_EQUAL_TO, MINUS_EQUAL, PLUS_EQUAL, MUL_EQUAL, DIV_EQUAL, DECREASE, INCREASE, NOT,
+    GREATER, LESS, GR_EQUAL, LS_EQUAL, IS_EQUAL_TO, NOT_EQUAL_TO, MINUS_EQUAL, PLUS_EQUAL, MUL_EQUAL, DIV_EQUAL, DECREASE, INCREASE, NOT, OR, AND,
     IF, ELSE, ELSE_IF, OUTPUT, INPUT,
     LPAREN, RPAREN, LBRACE, RBRACE
 };
@@ -35,6 +35,14 @@ class Lexer{
             }
 
             char c = current_char();
+
+            switch (c){
+                case ';': pos++; return {SEMICOLON, ";"};
+                case '(': pos++; return {LPAREN, "("};
+                case ')': pos++; return {RPAREN, ")"};
+                case '{': pos++; return {LBRACE, "{"};
+                case '}': pos++; return {RBRACE, "}"};
+            }
 
             
             if (isdigit(c) || c == '.'){
@@ -121,6 +129,26 @@ class Lexer{
                 return {NOT, "!"};
             }
 
+            else if (c == '|'){
+                pos++;
+                if (current_char() == '|'){
+                    pos++;
+                    return {OR, "||"};
+                }
+                cout<<"[UnexpectedTokenError]: Unexpected token '|', perhaps you have meant '||'?";
+                exit(1);
+            }
+
+            else if (c == '&'){
+                pos++;
+                if (current_char() == '&'){
+                    pos++;
+                    return {AND, "&&"};
+                }
+                cout<<"[UnexpectedTokenError]: Unexpected token '&', perhaps you have meant '&&'?";
+                exit(1);
+            }
+
             else if (c == '-'){
                 pos++;
                 if (current_char() == '='){
@@ -165,14 +193,13 @@ class Lexer{
                 return {DIV, "/"};
             }
 
-            switch (c){
-                case ';': pos++; return {SEMICOLON, ";"};
-                case '(': pos++; return {LPAREN, "("};
-                case ')': pos++; return {RPAREN, ")"};
-                case '{': pos++; return {LBRACE, "{"};
-                case '}': pos++; return {RBRACE, "}"};
+            else if (c == '\0'){
+                return {END_OF_FILE, ""};
             }
-
-            return {END_OF_FILE, ""};
+            
+            else{
+                cout<<"[UnexpectedTokenError]: Unknown character: "<<"'"<<c<<"'\n";
+                exit(1);
+            }
         }
 };
