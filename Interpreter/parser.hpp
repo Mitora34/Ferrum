@@ -127,6 +127,68 @@ class Parser{
             return value;
         }
 
+        long double parse_comparison(){
+            long double left = parse_expression();
+
+            if (current_token.type == GREATER){
+                eat(GREATER);
+                return left > parse_expression();
+            }
+
+            else if (current_token.type == LESS){
+                eat(LESS);
+                return left < parse_expression();
+            }
+
+            else if (current_token.type == GR_EQUAL){
+                eat(GR_EQUAL);
+                return left >= parse_expression();
+            }
+
+            else if (current_token.type == LS_EQUAL){
+                eat(LS_EQUAL);
+                return left <= parse_expression();
+            }
+
+            else if (current_token.type == IS_EQUAL_TO){
+                eat(IS_EQUAL_TO);
+                return left == parse_expression();
+            }
+
+            else if (current_token.type == NOT_EQUAL_TO){
+                eat(NOT_EQUAL_TO);
+                return left != parse_expression();
+            }
+
+            return left;
+        }
+
+        long double parse_logic(){
+            long double left = parse_comparison();
+
+            while (current_token.type == AND || current_token.type == OR){
+                TokenTypes op = current_token.type;
+
+                eat(op);
+                
+                long double right = parse_comparison();
+
+                if (op == AND) left = left && right;
+                else left = left || right;
+            }
+
+            return left;
+        }
+
+        void skip_block(){
+            int brace_depth = 1;
+            while (brace_depth > 0 && current_token.type != END_OF_FILE){
+                current_token = lexer.next_token();
+                if (current_token.type == LBRACE) brace_depth++;
+                else if (current_token.type == RBRACE) brace_depth--;
+            }
+        }
+
         void run(){
 
             bool last_if_executed = false;
@@ -198,79 +260,63 @@ class Parser{
                 else if (current_token.type == IF){
                     eat(IF);
                     eat(LPAREN);
-                    
-                    int condition_value = 0;
-
-                    if (current_token.type == NUMBER) {condition_value = stoi(current_token.value); eat(NUMBER);}
-                    else if (current_token.type == IDENTIFIER) {if (memory.count(current_token.value)) condition_value = memory[current_token.value]; else{cout<<"[RuntimeError]: Varible "<<current_token.value<<" is not initialized";} eat(IDENTIFIER);}
+    
+                    long double condition_value = parse_logic();
 
                     eat(RPAREN);
                     eat(LBRACE);
-                    
-                    if (condition_value == 1){last_if_executed = true;}
-                    else if(condition_value == 0){
-                        int brace_depth = 1;
-                        while(brace_depth > 0 && current_token.type != END_OF_FILE){
-                            current_token = lexer.next_token();
-                            if(current_token.type == LBRACE) brace_depth++;
-                            else if(current_token.type == RBRACE) brace_depth--;
-                        }
-                        eat(RBRACE);
+    
+                    if (condition_value) last_if_executed = true;
+                    else {
+                        skip_block();
                     }
 
-                    else {cout<<"[IncorrectBooleanStateError]: Non-boolean statement. Expected 0 or 1, but got "<<condition_value; exit(1);}
+                    eat(RBRACE);
+                    last_else_if_executed = false;
                 }
 
                 else if (current_token.type == ELSE_IF){
                     eat(ELSE_IF);
                     eat(LPAREN);
 
-                    int condition_value = 0;
-
-                    if (current_token.type == NUMBER) {condition_value = stoi(current_token.value); eat(NUMBER);}
-                    else if (current_token.type == IDENTIFIER) {if (memory.count(current_token.value)) condition_value = memory[current_token.value]; else{cout<<"[RuntimeError]: Varible "<<current_token.value<<" is not initialized";} eat(IDENTIFIER);}
+                    long double condition_value = parse_logic();
 
                     eat(RPAREN);
                     eat(LBRACE);
 
-                    if (last_if_executed == false){
-                        cout<<"[InvalidMemberStartError]: 'else if/else' could not be executed without 'if' member declaration";
+                    if (!last_if_executed && !last_else_if_executed){
+                        cout << "[InvalidMemberStartError]: 'else if/else' could not be executed without 'if' member declaration";
                         exit(1);
                     }
 
-                    if (!last_if_executed && condition_value){last_else_if_executed = true;}
-                    else if(condition_value == 0 && last_if_executed == true){
-                        int brace_depth = 1;
-                        while(brace_depth > 0 && current_token.type != END_OF_FILE){
-                            current_token = lexer.next_token();
-                            if(current_token.type == LBRACE) brace_depth++;
-                            else if(current_token.type == RBRACE) brace_depth--;
-                        }
-                        eat(RBRACE);
+                    if (!last_if_executed && condition_value){
+                        last_else_if_executed = true;
+                        last_if_executed = true;
+                    } 
+                    else {
+                        skip_block();
                     }
-                    else {cout<<"[IncorrectBooleanStateError]: Non-boolean statement. Expected 0 or 1, but got "<<condition_value; exit(1);}
+
+                    eat(RBRACE);
                 }
 
                 else if (current_token.type == ELSE){
                     eat(ELSE);
                     eat(LBRACE);
 
-                    if (last_if_executed == false){
-                        cout<<"[InvalidMemberStartError]: 'else if/else' could not be executed without 'if' member declaration";
+                    if (!last_if_executed && !last_else_if_executed){
+                        cout << "[InvalidMemberStartError]: 'else if/else' could not be executed without 'if' member declaration";
                         exit(1);
                     }
-                    
-                    if (!last_if_executed && !last_else_if_executed){}
-                    else{
-                        int brace_depth = 1;
-                        while(brace_depth > 0 && current_token.type != END_OF_FILE){
-                            current_token = lexer.next_token();
-                            if(current_token.type == LBRACE) brace_depth++;
-                            else if(current_token.type == RBRACE) brace_depth--;
-                        }
+
+                    if (!last_if_executed && !last_else_if_executed){
+                        last_if_executed = true;
+                    }
+                    else {
+                        skip_block();
                     }
 
-                    eat(RBRACE);
+                    eat(RBRACE); 
                 }
             }
         }
