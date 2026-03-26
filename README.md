@@ -1,2 +1,2 @@
 # Ferrum
-My own programming language but it is an experimental one not the serious
+My own programming language but it is an experimental one, do not take it serious
