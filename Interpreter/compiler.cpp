@@ -3,7 +3,7 @@
 #include <filesystem>
 #include "parser.hpp"
 
-int main(int argc, char* argv[]){
+int main(){
     std::cout<<"Welcome to the Ferrum language's interpreter!\n";
     std::string path;
     std::cout<<"Input the file path(suffix must be .fer): ";
@@ -12,6 +12,10 @@ int main(int argc, char* argv[]){
     if (std::filesystem::exists(path)){
         if (std::filesystem::is_directory(path)){
             std::cout<<"It is a directory, not a file!";
+            exit(1);
+        }
+        if (std::filesystem::path(path).extension() != ".fer"){
+            std::cout<<"File must have .fer extension!";
             exit(1);
         }
         std::cout<<"Interpreting the file...\n";
@@ -29,8 +33,9 @@ int main(int argc, char* argv[]){
             file_contents.push_back('\n');
         }
 
+        std::map<std::string, AllValue> memory;
         Lexer lex(file_contents);
-        Parser parser(lex);
+        Parser parser(lex, memory);
         parser.run();
     }
     else{
